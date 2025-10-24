@@ -275,6 +275,14 @@ data_source:
   editable: [user1, user2]  # Optional: override table-level
 ```
 
+#### Text Column with Split
+```yaml
+- name: Address
+  type: text
+  split: ","  # Splits "123 Main St,Apt 4B" into two lines
+  # Useful for displaying multi-part data like addresses, codes, or timestamps
+```
+
 #### Number Column
 ```yaml
 - name: Quantity
@@ -336,6 +344,7 @@ data_source:
 | `max` | number | - | Maximum value (for `number` type) |
 | `step` | number | - | Increment step (for `number` type) |
 | `format` | string | `"yyyy-mm-dd"` | Date format (for `date` type) |
+| `split` | string | - | Character to split on for multi-line display (for `text`/`content` types) |
 
 ## 🎨 Styling
 
@@ -347,7 +356,7 @@ Use the `style` property to add custom CSS:
 type: custom:powertable-card
 entity: sensor.table_storage_tasks
 style: |
-  .editable-table th { 
+  .power-table th { 
     color: white !important; 
     background: linear-gradient(to right, #667eea, #764ba2) !important; 
   }
@@ -434,7 +443,7 @@ editable: [admin, office_manager]
 fit_width: true
 
 style: |
-  .editable-table {
+  .power-table {
     font-size: 13px;
   }
   .power-table td {
@@ -542,6 +551,7 @@ columns:
 ### Permission issues
 - Check that usernames in `editable` match your Home Assistant users
 - Username comparison is case-sensitive
+- Use Developer Tools → States to verify current user
 
 ### Data source not syncing
 - Verify `data_source.entity_id` exists
@@ -559,7 +569,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Inspired by various Home Assistant table cards and [mindmup's editable table](https://github.com/mindmup/editable-table)
+- Inspired by various Home Assistant table cards
 - Built with [Lit Element](https://lit.dev/)
 - Uses [marked](https://marked.js.org/) for Markdown rendering
 - Date formatting by [Steven Levithan](https://blog.stevenlevithan.com/archives/javascript-date-format)
@@ -569,3 +579,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🐛 [Report bugs](https://github.com/pgorod/PowerTable/issues)
 - 💡 [Request features](https://github.com/pgorod/PowerTable/issues)
 - 💬 [Community forum](https://community.home-assistant.io/)
+
+---
+
+**Made with ❤️ for the Home Assistant community**
