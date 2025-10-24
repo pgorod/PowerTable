@@ -329,7 +329,7 @@ data_source:
 | `type` | string | **Required** | Column type: `text`, `number`, `dropdown`, `cycle`, `checkbox`, `date`, `content` |
 | `editable` | array/boolean | Inherit | Override table-level editability for this column |
 | `hidden` | boolean | `false` | Hide column (useful for ID columns) |
-| `min_width` | string | - | Minimum column width (e.g., `"150px"`) |
+| `min_width` | string | - | Minimum column width (e.g., `"150px"` or `"20%"`) |
 | `source` | string | - | Data source field (for `content` type) |
 | `options` | array | - | Available options (for `dropdown`/`cycle` types) |
 | `min` | number | - | Minimum value (for `number` type) |
