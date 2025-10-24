@@ -1730,7 +1730,7 @@ class PowerTableCard extends LitElement {
                                     
                                     return html`
                                         <td
-                                            class="${isReadonly ? 'readonly-cell' : ''} ${column.type === 'number' ? 'number-cell' : ''} ${row.isMissing && this.config.if_missing === 'disable' ? 'disabled-missing' : ''} ${shouldFitWidth ? 'fit-width-cell' : ''}"
+                                            class="${isReadonly ? 'readonly-cell' : ''} ${column.type === 'number' ? 'number-cell' : ''} ${row.isMissing && this.config.if_missing === 'disable' ? 'disabled-missing' : ''} ${shouldFitWidth ? 'fit-width-cell' : ''} ${column.split ? 'split-cell' : ''}"
                                             data-row="${rowIndex}"
                                             data-col="${colIndex}"
                                             data-itemid="${row.itemId}"
@@ -1788,6 +1788,12 @@ class PowerTableCard extends LitElement {
     }
 
     renderCell(column, cellValue, rowIndex, colIndex, itemId, isReadonly) {
+        // Handle split option for text and content types
+        let displayValue = cellValue;
+        if (column.split && (column.type === 'text' || column.type === 'content') && cellValue) {
+            displayValue = String(cellValue).split(column.split).join('\n');
+        }
+        
         switch (column.type) {
             case 'checkbox':
                 return html`<input 
@@ -1838,7 +1844,7 @@ class PowerTableCard extends LitElement {
                 return cellValue;
             
             default:
-                return cellValue;
+                return displayValue;
         }
     }
     
@@ -1895,14 +1901,13 @@ class PowerTableCard extends LitElement {
                 padding: 8px 12px;
                 background: var(--table-header-background-color, #f5f5f5);
                 font-weight: bold;
-                text-align: left;
+                text-align: center;
                 min-width: 80px;
                 box-sizing: border-box;
             }
 
             .power-table th.readonly-header {
-                background: var(--secondary-background-color, #e8e8e8);
-                font-style: italic;
+                /* No visual difference from editable headers */
             }
 
             .power-table th.actions-header {
@@ -1917,13 +1922,15 @@ class PowerTableCard extends LitElement {
                 background: var(--card-background-color, white);
                 transition: background-color 0.2s;
                 box-sizing: border-box;
+                text-align: center;
             }
 
             .power-table td.readonly-cell {
-                background: var(--secondary-background-color, #f5f5f5);
                 cursor: default;
-                font-style: italic;
-                color: var(--secondary-text-color, #666);
+            }
+
+            .power-table td.split-cell {
+                white-space: pre-line;
             }
 
             .power-table td.disabled-missing {
