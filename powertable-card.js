@@ -1890,8 +1890,7 @@ class PowerTableCard extends LitElement {
                 padding: 2px 4px;
                 font-size: 0.8em;
                 white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                overflow: visible;
                 min-width: 0;
                 box-sizing: border-box;
             }
@@ -1930,7 +1929,8 @@ class PowerTableCard extends LitElement {
             }
 
             .power-table td.split-cell {
-                white-space: pre-line;
+                white-space: pre-line !important;
+                overflow: visible !important;
             }
 
             .power-table td.disabled-missing {
