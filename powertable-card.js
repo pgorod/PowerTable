@@ -349,25 +349,29 @@ class PowerTableCard extends LitElement {
     }
 
     setConfig(config) {
-        if (!config.entity) {
+        // Early detection of pure readonly mode to skip storage requirements
+        const isPureReadonly = config.columns && Array.isArray(config.columns) &&
+            config.columns.filter(col => !col.hidden).every(col => col.type === 'content');
+    
+        if (!isPureReadonly && !config.entity) {
             throw new Error('Storage entity is not set!');
         }
-
+    
         // Standalone mode doesn't require data_source
         if (!config.standalone_mode) {
             if (!config.data_source) {
                 throw new Error('data_source is not defined! (Enable standalone_mode if you want to use the card without a live data source)');
             }
-
+    
             if (!config.data_source.primary_key) {
                 throw new Error('data_source.primary_key is required for matching!');
             }
         }
-
+    
         if (!config.columns || !Array.isArray(config.columns)) {
             throw new Error('columns must be defined as an array!');
         }
-
+    
         // In standalone mode, no content columns allowed
         if (config.standalone_mode) {
             const hasContentColumns = config.columns.some(col => col.type === 'content');
@@ -386,10 +390,10 @@ class PowerTableCard extends LitElement {
             fit_width: false,
             ...config
         };
-
+    
         // Reset actions visibility on config change
         this.showActions = false;
-
+    
         // Detect mobile on config set
         this.updateMobileStatus();
     }
@@ -636,22 +640,99 @@ class PowerTableCard extends LitElement {
         return dateFormat(date, dateFormatMask);
     }
 
+    isPureReadonlyTable() {
+        // Check if table has only content columns (pure readonly sensor table)
+        if (this.config.standalone_mode) return false;
+        if (!this.config.columns) return false;
+        
+        // Check if ALL visible columns are content type
+        const visibleColumns = this.config.columns.filter(col => !col.hidden);
+        return visibleColumns.every(col => col.type === 'content');
+    }
+
     getSourceData() {
         if (this.config.standalone_mode) {
             return [];
         }
-
+    
         const ds = this.config.data_source;
         
         if (ds.type === 'sensor_attribute') {
             const sensor = this.hass.states[ds.entity_id];
-            if (!sensor) return [];
+            if (!sensor) {
+                console.warn(`Sensor entity "${ds.entity_id}" not found.`);
+                return [];
+            }
+    
+            // Log full attributes (keep for now; remove later if desired)
+            console.log('=== FULL SENSOR ATTRIBUTES DEBUG ===');
+            console.log(`Entity: ${ds.entity_id}`);
+            console.log('All Attributes Keys:', Object.keys(sensor.attributes || {}));
+            console.log('Full Attributes (truncated):', JSON.stringify(sensor.attributes, null, 2).substring(0, 1000) + '...');
+            console.log('=== END FULL DEBUG ===');
+    
+            // NEW: Handle nested paths (e.g., "akuvox_map.map")
+            let data;
+            if (ds.attribute_path.includes('.')) {
+                const pathParts = ds.attribute_path.split('.');
+                data = sensor.attributes;
+                let pathSuccess = true;
+                for (const part of pathParts) {
+                    if (data && typeof data === 'object' && part in data) {
+                        data = data[part];
+                    } else {
+                        console.warn(`Nested path part "${part}" not found in ${ds.attribute_path}.`);
+                        pathSuccess = false;
+                        break;
+                    }
+                }
+                if (!pathSuccess) {
+                    return [];
+                }
+            } else {
+                data = sensor.attributes[ds.attribute_path];
+            }
+    
+            if (!data) {
+                console.warn(`Attribute "${ds.attribute_path}" not found on ${ds.entity_id}.`);
+                // Hint for similar keys
+                const allKeys = Object.keys(sensor.attributes || {});
+                const similar = allKeys.filter(k => k.toLowerCase().includes('map'));
+                if (similar.length > 0) {
+                    console.log('Hint: Similar keys found:', similar);
+                }
+                return [];
+            }
+    
+            // Parse if string (HA common issue)
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                    console.log(`Parsed string attribute "${ds.attribute_path}" to object/array.`);
+                } catch (error) {
+                    console.error(`Failed to parse attribute "${ds.attribute_path}" as JSON:`, error);
+                    return [];
+                }
+            }
             
-            let data = sensor.attributes[ds.attribute_path];
-            if (!data || !Array.isArray(data)) return [];
+            // Handle array or object/dict
+            if (Array.isArray(data)) {
+                data = JSON.parse(JSON.stringify(data)); // Deep clone
+            } else if (typeof data === 'object' && data !== null) {
+                // Convert dict to array
+                data = Object.keys(data).map(key => {
+                    const item = JSON.parse(JSON.stringify(data[key]));
+                    if (!item._key) {
+                        item._key = key;
+                    }
+                    return item;
+                });
+            } else {
+                console.warn(`Attribute "${ds.attribute_path}" is invalid type:`, typeof data);
+                return [];
+            }
             
-            data = JSON.parse(JSON.stringify(data));
-            
+            console.log(`Source data from ${ds.entity_id}.${ds.attribute_path}:`, data);
             return data;
         }
         
@@ -659,6 +740,11 @@ class PowerTableCard extends LitElement {
     }
 
     getSavedData() {
+        // Pure readonly tables don't need storage
+        if (this.isPureReadonlyTable()) {
+            return {};
+        }
+        
         const storageEntity = this.hass.states[this.config.entity];
         if (!storageEntity || !storageEntity.attributes.row_data) {
             return {};
@@ -730,9 +816,47 @@ class PowerTableCard extends LitElement {
         }
 
         const sourceData = this.getSourceData();
-        const savedData = this.getSavedData();
+        console.log('Source data:', sourceData);
+        
         const fullColumns = this.config.columns;
         const displayColumns = fullColumns.filter(col => !col.hidden);
+        const primaryKey = this.config.data_source.primary_key;
+        console.log('Primary key:', primaryKey);
+        
+        // For pure readonly tables, just display source data directly
+        if (this.isPureReadonlyTable()) {
+            console.log('Pure readonly table - displaying source data only');
+            const rows = [];
+            
+            sourceData.forEach(item => {
+                console.log('Processing item:', item);
+                const itemId = String(item[primaryKey]);
+                console.log('Item ID:', itemId);
+                if (!itemId || itemId === 'undefined') {
+                    console.warn('Skipping item with no ID:', item);
+                    return;
+                }
+                
+                const rowData = [];
+                displayColumns.forEach((displayCol) => {
+                    const value = item[displayCol.source];
+                    console.log(`Column ${displayCol.name}: ${value}`);
+                    rowData.push(value || '');
+                });
+
+                rows.push({
+                    itemId: itemId,
+                    data: rowData,
+                    isMissing: false
+                });
+            });
+            
+            console.log('Final rows:', rows);
+            return { columns: displayColumns, rows: rows };
+        }
+        
+        // Original logic for hybrid tables with saved data
+        const savedData = this.getSavedData();
         const savedIndexMap = {};
         let savedIdx = 0;
         fullColumns.forEach((col, fullIdx) => {
@@ -740,14 +864,16 @@ class PowerTableCard extends LitElement {
                 savedIndexMap[fullIdx] = savedIdx++;
             }
         });
-        const primaryKey = this.config.data_source.primary_key;
+        
         const ifMissing = this.config.if_missing;
         
         const rows = [];
         const liveIds = new Set(sourceData.map(item => String(item[primaryKey])));
 
         sourceData.forEach(item => {
+            console.log('Processing item:', item);
             const itemId = String(item[primaryKey]);
+            console.log('Item ID:', itemId);
             if (!itemId) return;
             
             const rowData = [];
@@ -1203,6 +1329,12 @@ class PowerTableCard extends LitElement {
     }
 
     saveTableData(rowData) {
+        // Pure readonly tables don't need to save
+        if (this.isPureReadonlyTable()) {
+            console.log('Pure readonly table - skipping save');
+            return;
+        }
+        
         console.log('Attempting to save:', rowData);
         
         if (this.config.standalone_mode) {
@@ -1329,6 +1461,10 @@ class PowerTableCard extends LitElement {
     deleteRow(itemId) {
         // Check if user has permission to delete rows (table-level editable)
         if (!this.isTableEditable() || !this.config.standalone_mode) return;
+
+        // Confirmation dialog
+        const confirmed = confirm('Are you sure you want to delete this row?\n\nThis action is irreversible.');
+        if (!confirmed) return;
 
         const savedData = this.getSavedData();
         delete savedData[itemId];
@@ -1617,6 +1753,19 @@ class PowerTableCard extends LitElement {
         if (!this.hass) {
             return html`<ha-card>Loading...</ha-card>`;
         }
+
+        // For pure readonly tables, entity and storage json are optional
+        if (!this.isPureReadonlyTable()) {
+            const storageEntity = this.hass.states[this.config.entity];
+            if (!storageEntity) {
+                return html`<ha-card>
+                    <div style="padding: 20px;">
+                        Storage entity "${this.config.entity}" not found. 
+                        Please check your configuration.
+                    </div>
+                </ha-card>`;
+            }
+        }
     
         const tableData = this.getTableData();
         if (!tableData) {
@@ -1688,9 +1837,9 @@ class PowerTableCard extends LitElement {
         const bottomMarkdown = this.renderTemplate(this.config.markdown_bottom_content);
     
         return html`<ha-card class="${this.config.accent ? 'left-accent' : ''}">
-            ${this.config.show_header
+            ${this.config.show_header && this.config.friendly_name
                 ? html`<h1 class="card-header">
-                    <div class="name">${cardName}</div>
+                    <div class="name">${this.config.friendly_name}</div>
                 </h1>`
                 : html``}
             
