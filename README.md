@@ -10,6 +10,7 @@ A powerful and flexible table card for Home Assistant that combines live data so
 - **🔄 Two Operating Modes:**
   - **Sensor Mode**: Sync with live data sources (Todoist, Calendar, custom integrations)
   - **Standalone Mode**: Pure editable table with persistent storage
+  - **Content-Only Mode**: Display sensor data without storage requirements
   
 - **📊 Rich Column Types:**
   - **Text**: Simple text input
@@ -19,21 +20,27 @@ A powerful and flexible table card for Home Assistant that combines live data so
   - **Checkbox**: Boolean toggle
   - **Date**: Date picker with formatting
   - **Content**: Display-only columns from data sources
+  - **Split Display**: Split text/content on delimiters for multi-line display (e.g., addresses)
 
 - **👥 User-Based Access Control:**
   - Table-level and column-level editability
   - Specify which Home Assistant users can edit
   - Mix editable and read-only columns
 
+- **🗑️ Safe Row Deletion:**
+  - Confirmation dialog before deleting rows
+  - Prevents accidental data loss
+
 - **🎨 Customization:**
   - Custom CSS styling support
   - Markdown top/bottom content areas
   - Responsive design with mobile support
   - Configurable header visibility
+  - Optional friendly name display
 
 - **⚡ Smart Row Management:**
   - Add rows above/below
-  - Delete rows
+  - Delete rows with confirmation
   - Move rows up/down
   - Actions column with intuitive controls
 
@@ -41,6 +48,7 @@ A powerful and flexible table card for Home Assistant that combines live data so
   - JSON-based storage in `/config/www/`
   - Automatic file creation on first edit
   - Command-line sensor integration
+  - Not required for content-only tables
 
 ## 📦 Installation
 
@@ -72,6 +80,56 @@ lovelace:
 4. Restart Home Assistant
 
 ## 🚀 Quick Start
+
+### Content-Only Mode Example
+
+Perfect for displaying sensor data without storage requirements.
+
+**1. Configure Lovelace Resource (in `configuration.yaml`):**
+
+```yaml
+lovelace:
+  mode: yaml
+  resources:
+    - url: /local/powertable-card.js
+      type: module
+```
+
+**2. Add the Card to Your Dashboard:**
+
+```yaml
+type: custom:powertable-card
+friendly_name: Device Status  # Optional - omit to hide header
+show_header: true  # Only shows if friendly_name is set
+
+data_source:
+  type: sensor_attribute
+  entity_id: sensor.my_devices
+  attribute_path: devices  # Can be nested: parent.child.data
+  primary_key: id
+
+columns:
+  - name: ID
+    type: content
+    source: id
+    hidden: true
+    
+  - name: Device Name
+    type: content
+    source: name
+    
+  - name: Status
+    type: content
+    source: status
+    
+  - name: Last Seen
+    type: content
+    source: last_seen
+```
+
+**Note:** When all columns are `content` type (read-only sensor data), no storage sensor or JSON file is needed!
+
+---
 
 ### Standalone Mode Example
 
@@ -242,10 +300,10 @@ This creates a hybrid table: live task data from Todoist with your own editable 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `type` | string | **Required** | `custom:powertable-card` |
-| `entity` | string | **Required** | Sensor entity containing table storage |
+| `entity` | string | Conditional | Sensor entity containing table storage (not required for content-only tables) |
 | `standalone_mode` | boolean | `false` | Enable standalone mode (no data source) |
-| `friendly_name` | string | - | Display name for the table |
-| `path_to_storage_json` | string | **Required** | Path to JSON storage file (e.g., `/config/www/table.json`) |
+| `friendly_name` | string | - | Display name for the table (optional - header only shows if both `show_header` and `friendly_name` are set) |
+| `path_to_storage_json` | string | Conditional | Path to JSON storage file (e.g., `/config/www/table.json`) - not required for content-only tables |
 | `show_header` | boolean | `true` | Show table header row |
 | `editable` | array/boolean | `true` | Users allowed to edit. `true` = all users, `false` = none, `[user1, user2]` = specific users |
 | `if_missing` | string | `show` | Behavior for rows missing from data source: `remove`, `hide`, `disable`, `show` |
@@ -262,8 +320,18 @@ This creates a hybrid table: live task data from Todoist with your own editable 
 data_source:
   type: sensor_attribute
   entity_id: sensor.your_data_source
-  attribute_path: items  # Path to array in sensor attributes
+  attribute_path: items  # Path to array/dict in sensor attributes (supports nested paths: parent.child.data)
   primary_key: id  # Field used to match rows
+```
+
+**Supported Data Formats:**
+- **Array**: `[{id: 1, name: "Item1"}, {id: 2, name: "Item2"}]`
+- **Dictionary/Object**: `{key1: {name: "Item1"}, key2: {name: "Item2"}}` (auto-converts to array, adds `_key` field)
+- **String**: Automatically parsed as JSON if needed
+
+**Nested Paths:** Use dot notation for nested attributes:
+```yaml
+attribute_path: akuvox_map.map  # Accesses sensor.attributes.akuvox_map.map
 ```
 
 ### Column Types
@@ -345,6 +413,36 @@ data_source:
 | `step` | number | - | Increment step (for `number` type) |
 | `format` | string | `"yyyy-mm-dd"` | Date format (for `date` type) |
 | `split` | string | - | Character to split on for multi-line display (for `text`/`content` types) |
+
+### Content-Only Tables (No Storage Required)
+
+When **all visible columns** are of type `content`, the table operates in pure read-only mode and does **not require**:
+- ❌ Storage entity (`entity` parameter)
+- ❌ JSON file (`path_to_storage_json`)
+- ❌ Shell command configuration
+- ❌ Command-line sensor
+
+This is perfect for displaying sensor data without any persistence needs.
+
+**Example:**
+```yaml
+type: custom:powertable-card
+# No entity or storage needed!
+
+data_source:
+  type: sensor_attribute
+  entity_id: sensor.my_data
+  attribute_path: items
+  primary_key: id
+
+columns:
+  - name: Name
+    type: content
+    source: name
+  - name: Value
+    type: content
+    source: value
+```
 
 ## 🎨 Styling
 
@@ -559,6 +657,13 @@ columns:
 - Ensure `primary_key` field exists in source data
 - Set appropriate `if_missing` behavior
 
+### Data source shows empty table
+- Check if `attribute_path` exists using Developer Tools → States
+- For nested paths, use dot notation: `parent.child.data`
+- Verify data is an array or object/dictionary format
+- Check browser console for parsing errors
+- Ensure `primary_key` field exists in your data items
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -569,7 +674,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Inspired by various Home Assistant table cards
+- Inspired by various Home Assistant table cards and mindmup's editable table
 - Built with [Lit Element](https://lit.dev/)
 - Uses [marked](https://marked.js.org/) for Markdown rendering
 - Date formatting by [Steven Levithan](https://blog.stevenlevithan.com/archives/javascript-date-format)
