@@ -1742,6 +1742,26 @@ class PowerTableCard extends LitElement {
             const accentStyle = `.left-accent { border-left: 6px solid ${this.config.accent} !important; padding-left: 0 !important; margin-left: 0 !important; }`;
             customStyle = customStyle + accentStyle;
         }
+        
+        // Generate column-specific styles
+        if (this.config.columns && Array.isArray(this.config.columns)) {
+            const displayColumns = this.config.columns.filter(col => !col.hidden);
+            displayColumns.forEach((col, colIndex) => {
+                if (col.style) {
+                    // Target both th and td for this column using nth-child
+                    // colIndex + 1 because CSS nth-child is 1-indexed
+                    const columnStyle = `
+                        .power-table th:nth-child(${colIndex + 1}) {
+                            ${col.style}
+                        }
+                        .power-table td:nth-child(${colIndex + 1}) {
+                            ${col.style}
+                        }
+                    `;
+                    customStyle = customStyle + columnStyle;
+                }
+            });
+        }
     
         if (customStyle) {
             style.innerHTML = customStyle;
@@ -2029,7 +2049,7 @@ class PowerTableCard extends LitElement {
                 width: 100%;
                 border-collapse: collapse;
                 cursor: pointer;
-                user-select: none; /* Prevent text selection during long press */
+                user-select: text; /* Allow text selection for copy/paste */
                 transform: none; /* Prevent parent transform inheritance */
                 position: relative;
             }
@@ -2037,7 +2057,6 @@ class PowerTableCard extends LitElement {
             .power-table.fit-width-table th,
             .power-table.fit-width-table td {
                 padding: 2px 4px;
-                font-size: 0.8em;
                 white-space: nowrap;
                 overflow: visible;
                 min-width: 0;
@@ -2052,6 +2071,7 @@ class PowerTableCard extends LitElement {
                 text-align: center;
                 min-width: 80px;
                 box-sizing: border-box;
+                user-select: text;
             }
 
             .power-table th.readonly-header {
@@ -2071,25 +2091,30 @@ class PowerTableCard extends LitElement {
                 transition: background-color 0.2s;
                 box-sizing: border-box;
                 text-align: center;
+                user-select: text;
             }
 
             .power-table td.readonly-cell {
                 cursor: default;
+                user-select: text;
             }
 
             .power-table td.split-cell {
                 white-space: pre-line !important;
                 overflow: visible !important;
+                user-select: text;
             }
 
             .power-table td.disabled-missing {
                 background: #fff3cd !important;
                 color: #856404;
                 font-style: italic;
+                user-select: text;
             }
 
             .power-table tr.missing-row td {
                 opacity: 0.7;
+                user-select: text;
             }
 
             .power-table td:not(.readonly-cell):focus {
@@ -2100,11 +2125,13 @@ class PowerTableCard extends LitElement {
 
             .power-table td.number-cell {
                 padding: 4px;
+                user-select: none; /* Prevent selection on number controls */
             }
 
             .power-table td.actions-cell {
                 text-align: center;
                 padding: 4px;
+                user-select: none; /* Prevent selection on action buttons */
             }
 
             .actions-buttons {
@@ -2121,6 +2148,7 @@ class PowerTableCard extends LitElement {
                 cursor: pointer;
                 font-size: 12px;
                 border-radius: 2px;
+                user-select: none;
             }
 
             .action-btn:hover {
@@ -2144,6 +2172,7 @@ class PowerTableCard extends LitElement {
                 cursor: pointer;
                 width: 16px;
                 height: 16px;
+                user-select: none;
             }
 
             .power-table input[type="checkbox"]:disabled {
@@ -2156,6 +2185,7 @@ class PowerTableCard extends LitElement {
                 align-items: center;
                 justify-content: space-between;
                 gap: 2px;
+                user-select: none;
             }
 
             .number-btn {
@@ -2170,6 +2200,7 @@ class PowerTableCard extends LitElement {
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                user-select: none;
             }
 
             .number-btn:hover:not(:disabled) {
@@ -2185,6 +2216,7 @@ class PowerTableCard extends LitElement {
                 flex: 1;
                 text-align: center;
                 font-weight: bold;
+                user-select: text;
             }
 
             .cycle-value {
@@ -2195,6 +2227,7 @@ class PowerTableCard extends LitElement {
                 border-radius: 4px;
                 text-align: center;
                 cursor: pointer;
+                user-select: none;
             }
 
             .readonly-cell .cycle-value {
@@ -2208,12 +2241,14 @@ class PowerTableCard extends LitElement {
                 justify-content: space-between;
                 height: 100%;
                 cursor: pointer;
+                user-select: none;
             }
 
             .dropdown-value {
                 flex: 1;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                user-select: text;
             }
 
             .dropdown-arrow {
@@ -2221,6 +2256,7 @@ class PowerTableCard extends LitElement {
                 color: var(--secondary-text-color, #666);
                 margin-left: 4px;
                 flex-shrink: 0;
+                user-select: none;
             }
 
             .readonly-cell .dropdown-arrow {
@@ -2274,6 +2310,7 @@ class PowerTableCard extends LitElement {
                 border-bottom: 1px solid var(--divider-color, #e0e0e0);
                 white-space: nowrap;
                 transition: background-color 0.1s;
+                user-select: none;
             }
 
             .dropdown-list li:hover {
@@ -2323,6 +2360,7 @@ class PowerTableCard extends LitElement {
                 display: inline-flex;
                 align-items: center;
                 gap: 8px;
+                user-select: none;
             }
 
             .add-first-row-btn:hover {
