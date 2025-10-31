@@ -664,13 +664,6 @@ class PowerTableCard extends LitElement {
                 return [];
             }
     
-            // Log full attributes (keep for now; remove later if desired)
-            console.log('=== FULL SENSOR ATTRIBUTES DEBUG ===');
-            console.log(`Entity: ${ds.entity_id}`);
-            console.log('All Attributes Keys:', Object.keys(sensor.attributes || {}));
-            console.log('Full Attributes (truncated):', JSON.stringify(sensor.attributes, null, 2).substring(0, 1000) + '...');
-            console.log('=== END FULL DEBUG ===');
-    
             // NEW: Handle nested paths (e.g., "akuvox_map.map")
             let data;
             if (ds.attribute_path.includes('.')) {
@@ -1812,45 +1805,6 @@ class PowerTableCard extends LitElement {
         const visibleActions = hasActionsBase && this.showActions && numRows > 0;
         const actionsMinWidth = shouldFitWidth ? '80px' : '80px';
     
-        let colWidths = {};
-        let colMinWidths = {};
-        if (shouldFitWidth) {
-            const fixedWidths = [];
-            const flexibleColumns = [];
-            tableData.columns.forEach((col, idx) => {
-                if (col.min_width) {
-                    fixedWidths.push(col.min_width);
-                    colWidths[idx] = col.min_width;
-                    colMinWidths[idx] = col.min_width;
-                } else {
-                    flexibleColumns.push(idx);
-                }
-            });
-    
-            if (visibleActions) {
-                fixedWidths.push(actionsMinWidth);
-            }
-    
-            const numFlexible = flexibleColumns.length;
-            if (numFlexible > 0) {
-                const fixedSum = fixedWidths.length > 0 ? fixedWidths.reduce((sum, w) => sum + parseFloat(w), 0) + 'px' : '0px';
-                const flexibleWidth = `calc( (100% - ${fixedSum}) / ${numFlexible} )`;
-                flexibleColumns.forEach(idx => {
-                    colWidths[idx] = flexibleWidth;
-                    colMinWidths[idx] = '0px';
-                });
-            } else {
-                if (fixedWidths.length > 0) {
-                    console.warn('fit_width: Total fixed widths may exceed 100%; table may overflow.');
-                }
-            }
-    
-            if (visibleActions) {
-                colWidths['actions'] = actionsMinWidth;
-                colMinWidths['actions'] = actionsMinWidth;
-            }
-        }
-    
         this.generateStyles();  // Existing: For accent/style
 
         const topMarkdown = this.renderTemplate(this.config.markdown_top_content);
@@ -1868,24 +1822,24 @@ class PowerTableCard extends LitElement {
             
             <div 
                 class="table-container ${shouldFitWidth ? 'fit-width' : ''}" 
-                @pointerdown=${(e) => this.handleLongPressStart(e)}
-                @pointerup=${(e) => this.handleLongPressEnd(e)}
-                @pointerleave=${(e) => this.handleLongPressEnd(e)}
-                @pointercancel=${(e) => this.handleLongPressEnd(e)}
-                @touchstart=${(e) => e.stopPropagation()}
-                @touchmove=${(e) => e.stopPropagation()}
+                @pointerdown=${this.isTableEditable() && this.config.standalone_mode ? (e) => this.handleLongPressStart(e) : null}
+                @pointerup=${this.isTableEditable() && this.config.standalone_mode ? (e) => this.handleLongPressEnd(e) : null}
+                @pointerleave=${this.isTableEditable() && this.config.standalone_mode ? (e) => this.handleLongPressEnd(e) : null}
+                @pointercancel=${this.isTableEditable() && this.config.standalone_mode ? (e) => this.handleLongPressEnd(e) : null}
+                @touchstart=${this.isTableEditable() && this.config.standalone_mode ? (e) => e.stopPropagation() : null}
+                @touchmove=${this.isTableEditable() && this.config.standalone_mode ? (e) => e.stopPropagation() : null}
             >
-                <table class="power-table ${shouldFitWidth ? 'fit-width-table' : ''}" style=${shouldFitWidth ? `table-layout: fixed; width: 100%;` : ''}>
+                <table class="power-table ${shouldFitWidth ? 'fit-width-table' : ''}" style=${shouldFitWidth ? `table-layout: auto; width: 100%;` : ''}>
                     <thead>
                         <tr>
                             ${tableData.columns.map((col, colIndex) => html`
                                 <th 
                                     class="${col.type === 'content' || !this.isColumnEditable(col) ? 'readonly-header' : ''} ${shouldFitWidth ? 'fit-width-col' : ''}" 
-                                    style=${shouldFitWidth ? `width: ${colWidths[colIndex] || 'auto'}; min-width: ${colMinWidths[colIndex] || 'auto'};` : ''}
+                                    style=${shouldFitWidth && col.min_width ? `min-width: ${col.min_width};` : ''}
                                 >${col.name}</th>
                             `)}
                             ${visibleActions
-                                ? html`<th class="actions-header ${shouldFitWidth ? 'fit-width-col' : ''}" style=${shouldFitWidth ? `width: ${colWidths['actions']}; min-width: ${colMinWidths['actions']};` : 'width: 80px;'}>Actions</th>`
+                                ? html`<th class="actions-header ${shouldFitWidth ? 'fit-width-col' : ''}" style=${shouldFitWidth ? `min-width: ${actionsMinWidth};` : 'width: 80px;'}>Actions</th>`
                                 : html``}
                         </tr>
                     </thead>
@@ -1906,14 +1860,12 @@ class PowerTableCard extends LitElement {
                                             tabindex="${isReadonly ? -1 : 0}"
                                             @click=${(e) => !isReadonly && this.handleCellClick(rowIndex, colIndex, row.itemId, column, e)}
                                             @keydown=${(e) => !isReadonly && this.handleCellKeyDown(rowIndex, colIndex, row.itemId, e)}
-                                            style=${shouldFitWidth ? `width: ${colWidths[colIndex] || 'auto'}; min-width: ${colMinWidths[colIndex] || 'auto'};` : ''}
-                                        >
-                                            ${this.renderCell(column, cellValue, rowIndex, colIndex, row.itemId, isReadonly)}
-                                        </td>
+                                            style=${shouldFitWidth && column.min_width ? `min-width: ${column.min_width};` : ''}
+                                        >${this.renderCell(column, cellValue, rowIndex, colIndex, row.itemId, isReadonly)}</td>
                                     `;
                                 })}
                                 ${visibleActions
-                                    ? html`<td class="actions-cell ${shouldFitWidth ? 'fit-width-cell' : ''}" style=${shouldFitWidth ? `width: ${colWidths['actions']}; min-width: ${colMinWidths['actions']};` : 'width: 80px;'}>
+                                    ? html`<td class="actions-cell ${shouldFitWidth ? 'fit-width-cell' : ''}" style=${shouldFitWidth ? `min-width: ${actionsMinWidth};` : 'width: 80px;'}>
                                         <div class="actions-buttons">
                                             <button 
                                                 class="action-btn add-below" 
@@ -1960,7 +1912,7 @@ class PowerTableCard extends LitElement {
         // Handle split option for text and content types
         let displayValue = cellValue;
         if (column.split && (column.type === 'text' || column.type === 'content') && cellValue) {
-            displayValue = String(cellValue).split(column.split).join('\n');
+            displayValue = String(cellValue).split(column.split).join(column.split + '\n');
         }
         
         switch (column.type) {
@@ -2048,7 +2000,7 @@ class PowerTableCard extends LitElement {
             .power-table {
                 width: 100%;
                 border-collapse: collapse;
-                cursor: pointer;
+                cursor: default;
                 user-select: text; /* Allow text selection for copy/paste */
                 transform: none; /* Prevent parent transform inheritance */
                 position: relative;
@@ -2057,7 +2009,7 @@ class PowerTableCard extends LitElement {
             .power-table.fit-width-table th,
             .power-table.fit-width-table td {
                 padding: 2px 4px;
-                white-space: nowrap;
+                white-space: normal;
                 overflow: visible;
                 min-width: 0;
                 box-sizing: border-box;
@@ -2091,11 +2043,11 @@ class PowerTableCard extends LitElement {
                 transition: background-color 0.2s;
                 box-sizing: border-box;
                 text-align: center;
-                user-select: text;
+                user-select: text; 
             }
 
             .power-table td.readonly-cell {
-                cursor: default;
+                cursor: text;
                 user-select: text;
             }
 
@@ -2247,7 +2199,6 @@ class PowerTableCard extends LitElement {
             .dropdown-value {
                 flex: 1;
                 overflow: hidden;
-                text-overflow: ellipsis;
                 user-select: text;
             }
 
