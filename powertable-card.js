@@ -2103,7 +2103,6 @@ class PowerTableCard extends LitElement {
                     type="checkbox" 
                     .checked=${cellValue}
                     .disabled=${isReadonly}
-                    @click=${(e) => !isReadonly && this.handleCheckboxClick(rowIndex, colIndex, itemId, e)}
                     @change=${(e) => e.preventDefault()}
                 />`;
             
