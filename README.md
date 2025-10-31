@@ -406,6 +406,7 @@ attribute_path: akuvox_map.map  # Accesses sensor.attributes.akuvox_map.map
 | `editable` | array/boolean | Inherit | Override table-level editability for this column |
 | `hidden` | boolean | `false` | Hide column (useful for ID columns) |
 | `min_width` | string | - | Minimum column width (e.g., `"150px"` or `"20%"`) |
+| `style` | string | - | Custom CSS for this column (applies to both header and data cells) |
 | `source` | string | - | Data source field (for `content` type) |
 | `options` | array | - | Available options (for `dropdown`/`cycle` types) |
 | `min` | number | - | Minimum value (for `number` type) |
@@ -466,6 +467,45 @@ style: |
     background: #e3f2fd !important; 
   }
 ```
+### Column-Specific Styling
+
+Apply custom CSS to individual columns using the `style` property. The styling applies to both the column header (`th`) and all data cells (`td`) in that column.
+
+**Example:**
+```yaml
+type: custom:powertable-card
+entity: sensor.table_storage_tasks
+columns:
+  - name: Priority
+    type: dropdown
+    options: [Low, Medium, High, Urgent]
+    style: |
+      background: #fff3cd;
+      font-weight: bold;
+      color: #856404;
+  
+  - name: Status
+    type: cycle
+    options: [Todo, In Progress, Done]
+    style: |
+      text-align: left;
+      font-style: italic;
+  
+  - name: Hours
+    type: number
+    style: |
+      background: linear-gradient(to right, #e3f2fd, #bbdefb);
+      font-family: monospace;
+```
+
+**Common Use Cases:**
+- **Highlight important columns**: Background colors, bold text
+- **Custom alignment**: `text-align: left/center/right`
+- **Typography**: Font family, size, weight, style
+- **Visual separation**: Borders, gradients, shadows
+- **Conditional emphasis**: Colors based on column purpose
+
+**Note:** Column-level styling takes precedence over table-level styles for that specific column.
 
 ### Markdown Content with Templates
 
