@@ -388,6 +388,8 @@ class PowerTableCard extends LitElement {
             date_format: 'isoDate',
             standalone_mode: false,
             fit_width: false,
+            sort_column: undefined,
+            sort_direction: 'asc',
             ...config
         };
     
@@ -845,6 +847,67 @@ class PowerTableCard extends LitElement {
             });
             
             console.log('Final rows:', rows);
+
+            // Apply sorting if configured
+            if (this.config.sort_column !== undefined && this.config.sort_direction && displayColumns.length > 0) {
+                const direction = this.config.sort_direction === 'desc' ? -1 : 1;
+                let sortColIndex;
+                if (typeof this.config.sort_column === 'string') {
+                    sortColIndex = displayColumns.findIndex(col => col.name === this.config.sort_column);
+                } else if (typeof this.config.sort_column === 'number') {
+                    sortColIndex = Math.min(this.config.sort_column, displayColumns.length - 1);
+                }
+                if (sortColIndex >= 0) {
+                    const column = displayColumns[sortColIndex];
+                    const type = column.type;
+                    rows.sort((a, b) => {
+                        let valA = a.data[sortColIndex];
+                        let valB = b.data[sortColIndex];
+                        let cmp;
+                        if (type === 'dropdown' || type === 'cycle') {
+                            const options = column.options || [];
+                            const unkA = options.indexOf(valA) === -1;
+                            const unkB = options.indexOf(valB) === -1;
+                            cmp = Number(unkA) - Number(unkB);
+                            if (cmp === 0) {
+                                if (unkA) {
+                                    cmp = 0;
+                                } else {
+                                    const idxA = options.indexOf(valA);
+                                    const idxB = options.indexOf(valB);
+                                    cmp = idxA - idxB;
+                                }
+                            }
+                        } else if (type === 'date') {
+                            const dA = new Date(valA);
+                            const dB = new Date(valB);
+                            const validA = !isNaN(dA.getTime());
+                            const validB = !isNaN(dB.getTime());
+                            cmp = Number(!validA) - Number(!validB);
+                            if (cmp === 0) {
+                                if (!validA) {
+                                    cmp = 0;
+                                } else {
+                                    cmp = dA.getTime() - dB.getTime();
+                                }
+                            }
+                        } else if (type === 'content' || type === 'text') {
+                            cmp = valA.toString().localeCompare(valB.toString());
+                        } else if (type === 'number') {
+                            cmp = (parseFloat(valA) || 0) - (parseFloat(valB) || 0);
+                        } else if (type === 'checkbox') {
+                            const numA = valA ? 1 : 0;
+                            const numB = valB ? 1 : 0;
+                            cmp = numA - numB;
+                        } else {
+                            cmp = 0;
+                        }
+                        return cmp * direction;
+                    });
+                }
+            }
+            
+            console.log('Sorted rows:', rows);
             return { columns: displayColumns, rows: rows };
         }
         
@@ -928,6 +991,66 @@ class PowerTableCard extends LitElement {
             });
         }
 
+        // Apply sorting if configured
+        if (this.config.sort_column !== undefined && this.config.sort_direction && displayColumns.length > 0) {
+            const direction = this.config.sort_direction === 'desc' ? -1 : 1;
+            let sortColIndex;
+            if (typeof this.config.sort_column === 'string') {
+                sortColIndex = displayColumns.findIndex(col => col.name === this.config.sort_column);
+            } else if (typeof this.config.sort_column === 'number') {
+                sortColIndex = Math.min(this.config.sort_column, displayColumns.length - 1);
+            }
+            if (sortColIndex >= 0) {
+                const column = displayColumns[sortColIndex];
+                const type = column.type;
+                rows.sort((a, b) => {
+                    let valA = a.data[sortColIndex];
+                    let valB = b.data[sortColIndex];
+                    let cmp;
+                    if (type === 'dropdown' || type === 'cycle') {
+                        const options = column.options || [];
+                        const unkA = options.indexOf(valA) === -1;
+                        const unkB = options.indexOf(valB) === -1;
+                        cmp = Number(unkA) - Number(unkB);
+                        if (cmp === 0) {
+                            if (unkA) {
+                                cmp = 0;
+                            } else {
+                                const idxA = options.indexOf(valA);
+                                const idxB = options.indexOf(valB);
+                                cmp = idxA - idxB;
+                            }
+                        }
+                    } else if (type === 'date') {
+                        const dA = new Date(valA);
+                        const dB = new Date(valB);
+                        const validA = !isNaN(dA.getTime());
+                        const validB = !isNaN(dB.getTime());
+                        cmp = Number(!validA) - Number(!validB);
+                        if (cmp === 0) {
+                            if (!validA) {
+                                cmp = 0;
+                            } else {
+                                cmp = dA.getTime() - dB.getTime();
+                            }
+                        }
+                    } else if (type === 'content' || type === 'text') {
+                        cmp = valA.toString().localeCompare(valB.toString());
+                    } else if (type === 'number') {
+                        cmp = (parseFloat(valA) || 0) - (parseFloat(valB) || 0);
+                    } else if (type === 'checkbox') {
+                        const numA = valA ? 1 : 0;
+                        const numB = valB ? 1 : 0;
+                        cmp = numA - numB;
+                    } else {
+                        cmp = 0;
+                    }
+                    return cmp * direction;
+                });
+            }
+        }
+
+        console.log('Sorted rows:', rows);
         return {
             columns: displayColumns,
             rows: rows
@@ -962,6 +1085,65 @@ class PowerTableCard extends LitElement {
                 isMissing: false
             });
         });
+
+        // Apply sorting if configured
+        if (this.config.sort_column !== undefined && this.config.sort_direction && displayColumns.length > 0) {
+            const direction = this.config.sort_direction === 'desc' ? -1 : 1;
+            let sortColIndex;
+            if (typeof this.config.sort_column === 'string') {
+                sortColIndex = displayColumns.findIndex(col => col.name === this.config.sort_column);
+            } else if (typeof this.config.sort_column === 'number') {
+                sortColIndex = Math.min(this.config.sort_column, displayColumns.length - 1);
+            }
+            if (sortColIndex >= 0) {
+                const column = displayColumns[sortColIndex];
+                const type = column.type;
+                rows.sort((a, b) => {
+                    let valA = a.data[sortColIndex];
+                    let valB = b.data[sortColIndex];
+                    let cmp;
+                    if (type === 'dropdown' || type === 'cycle') {
+                        const options = column.options || [];
+                        const unkA = options.indexOf(valA) === -1;
+                        const unkB = options.indexOf(valB) === -1;
+                        cmp = Number(unkA) - Number(unkB);
+                        if (cmp === 0) {
+                            if (unkA) {
+                                cmp = 0;
+                            } else {
+                                const idxA = options.indexOf(valA);
+                                const idxB = options.indexOf(valB);
+                                cmp = idxA - idxB;
+                            }
+                        }
+                    } else if (type === 'date') {
+                        const dA = new Date(valA);
+                        const dB = new Date(valB);
+                        const validA = !isNaN(dA.getTime());
+                        const validB = !isNaN(dB.getTime());
+                        cmp = Number(!validA) - Number(!validB);
+                        if (cmp === 0) {
+                            if (!validA) {
+                                cmp = 0;
+                            } else {
+                                cmp = dA.getTime() - dB.getTime();
+                            }
+                        }
+                    } else if (type === 'content' || type === 'text') {
+                        cmp = valA.toString().localeCompare(valB.toString());
+                    } else if (type === 'number') {
+                        cmp = (parseFloat(valA) || 0) - (parseFloat(valB) || 0);
+                    } else if (type === 'checkbox') {
+                        const numA = valA ? 1 : 0;
+                        const numB = valB ? 1 : 0;
+                        cmp = numA - numB;
+                    } else {
+                        cmp = 0;
+                    }
+                    return cmp * direction;
+                });
+            }
+        }
 
         return {
             columns: displayColumns,
@@ -1965,6 +2147,10 @@ class PowerTableCard extends LitElement {
                 return cellValue;
             
             default:
+                // Show "-" only for empty text/content cells
+                if (!displayValue || (typeof displayValue === 'string' && displayValue.trim() === '')) {
+                    displayValue = '-';
+                }
                 return displayValue;
         }
     }
@@ -2020,18 +2206,10 @@ class PowerTableCard extends LitElement {
                 padding: 8px 12px;
                 background: var(--table-header-background-color, #f5f5f5);
                 font-weight: bold;
-                text-align: center;
                 min-width: 80px;
                 box-sizing: border-box;
                 user-select: text;
-            }
-
-            .power-table th.readonly-header {
-                /* No visual difference from editable headers */
-            }
-
-            .power-table th.actions-header {
-                text-align: center;
+                text-align: left;
             }
 
             .power-table td {
@@ -2042,7 +2220,6 @@ class PowerTableCard extends LitElement {
                 background: var(--card-background-color, white);
                 transition: background-color 0.2s;
                 box-sizing: border-box;
-                text-align: center;
                 user-select: text; 
             }
 
@@ -2081,7 +2258,6 @@ class PowerTableCard extends LitElement {
             }
 
             .power-table td.actions-cell {
-                text-align: center;
                 padding: 4px;
                 user-select: none; /* Prevent selection on action buttons */
             }
@@ -2090,7 +2266,6 @@ class PowerTableCard extends LitElement {
                 display: flex;
                 flex-direction: row;
                 gap: 2px;
-                justify-content: center;
             }
 
             .action-btn {
@@ -2134,7 +2309,6 @@ class PowerTableCard extends LitElement {
 
             .number-control {
                 display: flex;
-                align-items: center;
                 justify-content: space-between;
                 gap: 2px;
                 user-select: none;
@@ -2150,8 +2324,6 @@ class PowerTableCard extends LitElement {
                 cursor: pointer;
                 font-size: 14px;
                 display: flex;
-                align-items: center;
-                justify-content: center;
                 user-select: none;
             }
 
@@ -2166,7 +2338,6 @@ class PowerTableCard extends LitElement {
 
             .number-value {
                 flex: 1;
-                text-align: center;
                 font-weight: bold;
                 user-select: text;
             }
@@ -2177,7 +2348,6 @@ class PowerTableCard extends LitElement {
                 background: var(--mdc-theme-primary, #03a9f4);
                 color: var(--mdc-theme-on-primary, white);
                 border-radius: 4px;
-                text-align: center;
                 cursor: pointer;
                 user-select: none;
             }
@@ -2189,7 +2359,6 @@ class PowerTableCard extends LitElement {
 
             .dropdown-cell {
                 display: flex;
-                align-items: center;
                 justify-content: space-between;
                 height: 100%;
                 cursor: pointer;
@@ -2290,14 +2459,12 @@ class PowerTableCard extends LitElement {
                 padding: 4px 16px 8px !important;  /* Top: 4px from table, bottom: 8px to card edge */
                 font-size: 14px;
                 line-height: 1.4;
-                text-align: center;  /* Optional: Center footers */
                 color: var(--secondary-text-color, #666);
                 font-style: italic;
             }
 
             .add-row-section {
                 padding: 20px;
-                text-align: center;
             }
 
             .add-first-row-btn {
@@ -2309,7 +2476,6 @@ class PowerTableCard extends LitElement {
                 cursor: pointer;
                 font-size: 16px;
                 display: inline-flex;
-                align-items: center;
                 gap: 8px;
                 user-select: none;
             }
