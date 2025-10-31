@@ -309,10 +309,33 @@ This creates a hybrid table: live task data from Todoist with your own editable 
 | `if_missing` | string | `show` | Behavior for rows missing from data source: `remove`, `hide`, `disable`, `show` |
 | `fit_width` | boolean | `false` | Make table fit container width |
 | `accent` | string | - | Accent color for styling |
+| `sort_column` | string | - | Name of column to sort by on load (e.g., `"Priority"`) |
+| `sort_direction` | string | `asc` | Initial sort direction: `'asc'` (ascending) or `'desc'` (descending)  |
 | `style` | string | - | Custom CSS styles |
 | `markdown_top_content` | string | - | Markdown content above table (supports templates) |
 | `markdown_bottom_content` | string | - | Markdown content below table (supports templates) |
 | `columns` | array | **Required** | Column definitions (see below) |
+
+### Sorting Behavior
+
+You can set a default sort order using `sort_column` and `sort_direction`.
+
+**Sorting Logic by Column Type:**
+
+| Column Type | Ascending (`asc`) | Descending (`desc`) |
+|-------------|-------------------|---------------------|
+| **Text/Content** | A → Z (alphabetical) | Z → A (reverse alphabetical) |
+| **Number** | Smallest → Largest | Largest → Smallest |
+| **Date** | Oldest → Newest | Newest → Oldest |
+| **Checkbox** | Unchecked, then Checked | Checked, then Unchecked |
+| **Dropdown/Cycle** | Order of options list | Reverse order of options list |
+
+**Example:**
+```yaml
+type: custom:powertable-card
+sort_column: "Priority"      # Sort by Priority column
+sort_direction: 'desc'       # Highest priority first
+```
 
 ### Data Source Configuration (Sensor Mode Only)
 
@@ -537,6 +560,8 @@ friendly_name: Team Task Board
 path_to_storage_json: /config/www/table_storage_tasks.json
 editable: [manager, team_lead]
 show_header: true
+sort_column: "Priority"
+sort_direction: 'desc'
 accent: '#4CAF50'
 
 markdown_top_content: |
@@ -579,6 +604,8 @@ friendly_name: Office Inventory
 path_to_storage_json: /config/www/table_storage_inventory.json
 editable: [admin, office_manager]
 fit_width: true
+sort_column: "Quantity"
+sort_direction: 'asc'
 
 style: |
   .power-table {
@@ -620,6 +647,8 @@ path_to_storage_json: /config/www/table_storage_todoist.json
 editable: [john, mary]
 if_missing: hide  # Hide completed/deleted tasks
 show_header: true
+sort_column: "Due"
+sort_direction: 'asc'
 
 data_source:
   type: sensor_attribute
