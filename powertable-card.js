@@ -597,6 +597,14 @@ class PowerTableCard extends LitElement {
             const state = this.hass?.states?.[entityId];
             return state?.state || 'unavailable';
         }
+
+        const stateAttrMatch = expr.match(/state_attr\(['"](.+?)['"],\s*['"](.+?)['"]\)/);
+        if (stateAttrMatch) {
+            const entityId = stateAttrMatch[1];
+            const attrName = stateAttrMatch[2];
+            const state = this.hass?.states?.[entityId];
+            return state?.attributes?.[attrName] || '';
+        }
         
         // Future extensions: groups, filters, etc.
         // Example stub for groups:
