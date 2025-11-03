@@ -2451,6 +2451,7 @@ class PowerTableCard extends LitElement {
             font-size: 14px;
             line-height: 1.4;
             border-bottom: 1px solid var(--divider-color, #e0e0e0);  /* Optional subtle separator */
+             user-select: text;
             }
             
             .bottom-markdown {
@@ -2460,6 +2461,7 @@ class PowerTableCard extends LitElement {
                 line-height: 1.4;
                 color: var(--secondary-text-color, #666);
                 font-style: italic;
+                 user-select: text;
             }
 
             .add-row-section {
