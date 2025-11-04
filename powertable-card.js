@@ -2453,14 +2453,14 @@ class PowerTableCard extends LitElement {
             }
 
             .top-markdown {
-                padding: 0 0 16px 0 !important; 
+                padding: 0 16px 16px 16px !important; 
                 font-size: 14px;
                 line-height: 1.4;
                 user-select: text;
             }
             
             .bottom-markdown {
-                padding: 16px 0 0 0 !important;
+                padding: 0 16px 16px 16px !important; 
                 font-size: 14px;
                 line-height: 1.4;
                 user-select: text;
