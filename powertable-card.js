@@ -2177,7 +2177,7 @@ class PowerTableCard extends LitElement {
             }
 
             .table-container {
-                padding: 15px;
+                padding: 0 16px;
                 overflow-x: auto;
                 touch-action: pan-y manipulation; /* Allow vertical scroll, block horizontal swipe interference */
                 position: relative;
@@ -2186,7 +2186,7 @@ class PowerTableCard extends LitElement {
 
             .table-container.fit-width {
                 overflow-x: hidden;
-                padding: 0;
+                padding: 0 16px;
                 touch-action: manipulation; /* fit-width doesn't need horizontal scroll */
             }
 
@@ -2211,7 +2211,6 @@ class PowerTableCard extends LitElement {
             .power-table th {
                 border: 1px solid var(--divider-color, #e0e0e0);
                 padding: 8px 12px;
-                background: var(--table-header-background-color, #f5f5f5);
                 font-weight: bold;
                 min-width: 80px;
                 box-sizing: border-box;
@@ -2454,22 +2453,17 @@ class PowerTableCard extends LitElement {
             }
 
             .top-markdown {
-            margin: 0 !important;
-            padding: 8px 16px 4px !important;  /* Top: 8px from card edge, bottom: 4px to table */
-            font-size: 14px;
-            line-height: 1.4;
-            border-bottom: 1px solid var(--divider-color, #e0e0e0);  /* Optional subtle separator */
-             user-select: text;
+                padding: 0 0 16px 0 !important; 
+                font-size: 14px;
+                line-height: 1.4;
+                user-select: text;
             }
             
             .bottom-markdown {
-                margin: 0 !important;
-                padding: 4px 16px 8px !important;  /* Top: 4px from table, bottom: 8px to card edge */
+                padding: 16px 0 0 0 !important;
                 font-size: 14px;
                 line-height: 1.4;
-                color: var(--secondary-text-color, #666);
-                font-style: italic;
-                 user-select: text;
+                user-select: text;
             }
 
             .add-row-section {
