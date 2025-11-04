@@ -7,7 +7,7 @@ A powerful and flexible table card for Home Assistant that combines live data so
 
 ## ✨ Features
 
-- **🔄 Two Operating Modes:**
+- **🔄 Three Operating Modes:**
   - **Sensor Mode**: Sync with live data sources (Todoist, Calendar, custom integrations)
   - **Standalone Mode**: Pure editable table with persistent storage
   - **Content-Only Mode**: Display sensor data without storage requirements
